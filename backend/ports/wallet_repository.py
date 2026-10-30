@@ -27,3 +27,7 @@ class WalletRepository(Protocol):
     def save(self, record: WalletRecord) -> None:
         """Guarda el registro. Debe lanzar WalletPersistenceError si no puede persistirlo."""
         ...
+
+    def find(self, kyc_id: str) -> WalletRecord | None:
+        """Devuelve el registro con ese kyc_id o None. Debe lanzar WalletPersistenceError si no puede leerlo."""
+        ...

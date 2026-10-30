@@ -8,6 +8,7 @@ dependencies = [
     "langgraph-checkpoint==4.3.1",
     "ag-ui-langgraph==0.0.47",
     "fastapi==0.162.0",
+    "github-copilot-sdk==1.0.28",
     "httpx==0.28.1",
     "langchain-core==1.7.3",
     "python-dotenv==1.2.4",

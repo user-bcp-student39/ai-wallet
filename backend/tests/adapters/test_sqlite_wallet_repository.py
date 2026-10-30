@@ -127,3 +127,39 @@ def test_persistence_error_does_not_leak_personal_data(tmp_path):
         repository.save(RECORD)
 
     assert "12345678" not in str(error.value) and "ana@example.com" not in str(error.value)
+
+
+def test_find_returns_the_saved_record_with_all_fields(tmp_path):
+    repository = SqliteWalletRepository(tmp_path / "wallet.db")
+    repository.save(RECORD)
+
+    assert repository.find("KYC-1") == RECORD
+
+
+def test_find_picks_the_requested_record_among_several(tmp_path):
+    repository = SqliteWalletRepository(tmp_path / "wallet.db")
+    repository.save(RECORD)
+    repository.save(WalletRecord(**{**asdict(RECORD), "kyc_id": "KYC-2", "wallet_id": "W-2", "state": "PENDING"}))
+
+    found = repository.find("KYC-2")
+
+    assert found is not None and (found.wallet_id, found.state) == ("W-2", "PENDING")
+
+
+def test_find_returns_none_for_unknown_kyc_id(tmp_path):
+    repository = SqliteWalletRepository(tmp_path / "wallet.db")
+    repository.save(RECORD)
+
+    assert repository.find("KYC-NO-EXISTE") is None
+
+
+def test_find_failure_raises_persistence_error(tmp_path):
+    path = tmp_path / "wallet.db"
+    repository = SqliteWalletRepository(path)
+    connection = sqlite3.connect(path)
+    connection.execute("DROP TABLE wallets")
+    connection.commit()
+    connection.close()
+
+    with pytest.raises(WalletPersistenceError):
+        repository.find("KYC-1")

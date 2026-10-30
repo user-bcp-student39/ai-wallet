@@ -20,9 +20,11 @@ class WalletPersistenceError(RuntimeError):
 
 
 class WalletNotActivatedError(RuntimeError):
-    def __init__(self, reason: str) -> None:
+    def __init__(self, reason: str, kyc_id: str | None = None) -> None:
         super().__init__(reason)
         self.reason = reason
+        # Identificador del registro guardado, si la API respondió y el guardado funcionó.
+        self.kyc_id = kyc_id
 
 
 class OnboardingService:
@@ -51,16 +53,16 @@ class OnboardingService:
             raise SessionExpiredError("La sesión de onboarding expiró; reinicia el proceso.")
         collected = session.complete_data()
         activation = self._gateway.activate_wallet(WalletActivationRequest(**collected))
-        self._register(collected, activation)
+        registered_kyc_id = self._register(collected, activation)
         if not activation.activated:
-            raise WalletNotActivatedError(activation.reason or "La wallet no pudo activarse.")
+            raise WalletNotActivatedError(activation.reason or "La wallet no pudo activarse.", registered_kyc_id)
         session.mark_activated(now)
         return activation
 
-    def _register(self, collected: Mapping[str, Any], activation: WalletActivation) -> None:
-        """Guarda la verificación con cualquier estado; sin kyc_id o wallet_id no hay registro posible."""
+    def _register(self, collected: Mapping[str, Any], activation: WalletActivation) -> str | None:
+        """Guarda la verificación con cualquier estado y devuelve su kyc_id; sin kyc_id o wallet_id no hay registro."""
         if not (activation.kyc_id and activation.wallet_id and activation.status):
-            return
+            return None
         try:
             self._repository.save(
                 WalletRecord(
@@ -79,3 +81,4 @@ class OnboardingService:
             # Solo identificadores de la verificación: permiten reconciliar la wallet creada en la API sin exponer datos personales.
             logger.error("No se pudo registrar la verificación kyc_id=%s wallet_id=%s", activation.kyc_id, activation.wallet_id)
             raise
+        return activation.kyc_id

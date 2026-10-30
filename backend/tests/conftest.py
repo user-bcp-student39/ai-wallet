@@ -1,6 +1,7 @@
 import pytest
 
 from application.onboarding_service import WalletPersistenceError
+from ports.conversational_model import ModelUnavailableError
 from ports.wallet_gateway import WalletActivation
 from ports.wallet_repository import WalletRecord
 
@@ -35,6 +36,26 @@ class FakeWalletRepository:
             raise WalletPersistenceError("almacén no disponible")
         self.records.append(record)
 
+    def find(self, kyc_id: str) -> WalletRecord | None:
+        if self.fail:
+            raise WalletPersistenceError("almacén no disponible")
+        return next((record for record in self.records if record.kyc_id == kyc_id), None)
+
+
+class FakeConversationalModel:
+    """Devuelve las respuestas en orden (repite la última) y guarda las llamadas para inspeccionarlas."""
+
+    def __init__(self, *replies: str, fail: bool = False) -> None:
+        self.replies = list(replies) or ['{"intent": "chat", "reply": "Hola."}']
+        self.fail = fail
+        self.calls: list[tuple[str, list]] = []
+
+    async def complete(self, system, messages):
+        self.calls.append((system, list(messages)))
+        if self.fail:
+            raise ModelUnavailableError("sin modelo")
+        return self.replies.pop(0) if len(self.replies) > 1 else self.replies[0]
+
 
 @pytest.fixture
 def fake_gateway() -> FakeWalletGateway:
@@ -44,3 +65,8 @@ def fake_gateway() -> FakeWalletGateway:
 @pytest.fixture
 def fake_repository() -> FakeWalletRepository:
     return FakeWalletRepository()
+
+
+@pytest.fixture
+def fake_model() -> FakeConversationalModel:
+    return FakeConversationalModel()

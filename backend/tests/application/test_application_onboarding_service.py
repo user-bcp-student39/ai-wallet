@@ -128,10 +128,11 @@ def test_non_active_verification_is_saved_with_its_state_but_does_not_activate(f
     service = OnboardingService(fake_gateway, fake_repository)
     session = _ready_session(service)
 
-    with pytest.raises(WalletNotActivatedError):
+    with pytest.raises(WalletNotActivatedError) as error:
         service.activate(session, NOW)
 
     assert not session.activated
+    assert error.value.kyc_id == "KYC-TEST-2"
     assert [record.state for record in fake_repository.records] == [status]
     assert fake_repository.records[0].kyc_id == "KYC-TEST-2"
 
@@ -142,9 +143,10 @@ def test_unavailable_api_saves_nothing(fake_gateway, fake_repository):
     service = OnboardingService(fake_gateway, fake_repository)
     session = _ready_session(service)
 
-    with pytest.raises(WalletNotActivatedError):
+    with pytest.raises(WalletNotActivatedError) as error:
         service.activate(session, NOW)
 
+    assert error.value.kyc_id is None
     assert fake_repository.records == []
 
 

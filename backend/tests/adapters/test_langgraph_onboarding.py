@@ -177,10 +177,51 @@ def test_persistence_failure_ends_without_activation_and_logs_only_identifiers(
 
     assert final["activated"] is False
     assert final["wallet_id"] is None
+    assert final["kyc_id"] is None
     assert final["reason"] == "REGISTRY_ERROR"
     assert final["done"] is True
     assert "KYC-TEST-1" in caplog.text
     assert "12345678" not in caplog.text and "ana@example.com" not in caplog.text
+
+
+def test_state_keeps_kyc_id_after_active_verification(fake_gateway: WalletGateway, fake_repository):
+    graph = build_onboarding_graph(fake_gateway, fake_repository)
+
+    _confirm_activation(graph, "kyc-activo")
+
+    assert graph.get_state(_config("kyc-activo")).values["kyc_id"] == "KYC-TEST-1"
+
+
+def test_state_keeps_kyc_id_after_pending_verification(fake_gateway: WalletGateway, fake_repository):
+    fake_gateway.activated = False
+    fake_gateway.status = "PENDING"
+    graph = build_onboarding_graph(fake_gateway, fake_repository)
+
+    _confirm_activation(graph, "kyc-pendiente")
+
+    assert graph.get_state(_config("kyc-pendiente")).values["kyc_id"] == "KYC-TEST-2"
+
+
+def test_state_has_no_kyc_id_when_api_is_unavailable(fake_gateway: WalletGateway, fake_repository):
+    fake_gateway.activated = False
+    fake_gateway.reason = "API_UNAVAILABLE"
+    graph = build_onboarding_graph(fake_gateway, fake_repository)
+
+    _confirm_activation(graph, "kyc-api-caida")
+
+    assert graph.get_state(_config("kyc-api-caida")).values["kyc_id"] is None
+
+
+def test_state_without_kyc_id_key_gets_default_and_flow_continues(fake_gateway: WalletGateway, fake_repository):
+    graph = build_onboarding_graph(fake_gateway, fake_repository)
+    config = _config("estado-anterior")
+    legacy_state = initial_state()
+    del legacy_state["kyc_id"]
+
+    result = graph.invoke(legacy_state, config)
+
+    assert _pending_step(result) == 1
+    assert graph.get_state(config).values["kyc_id"] is None
 
 
 class _Clock:

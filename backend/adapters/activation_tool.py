@@ -23,13 +23,14 @@ def build_activation_tool(service: OnboardingService) -> BaseTool:
 
         Returns:
             activated, wallet_id, kyc_id y reason (motivo cuando no se activa, si no es None).
+            kyc_id identifica el registro guardado, también cuando la wallet no se activa; es None si no hay registro.
         """
         now = datetime.fromisoformat(confirmed_at)
         session = OnboardingSession(step=Step.ACTIVATION, data=dict(data), last_progress_at=now)
         try:
             activation = service.activate(session, now)
         except WalletNotActivatedError as exc:
-            return {"activated": False, "wallet_id": None, "kyc_id": None, "reason": exc.reason}
+            return {"activated": False, "wallet_id": None, "kyc_id": exc.kyc_id, "reason": exc.reason}
         except WalletPersistenceError:
             return {"activated": False, "wallet_id": None, "kyc_id": None, "reason": REGISTRY_ERROR_REASON}
         return {

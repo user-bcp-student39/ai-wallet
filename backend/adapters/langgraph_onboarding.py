@@ -42,6 +42,7 @@ class OnboardingState(TypedDict):
     errors: list[dict[str, str | None]]
     activated: bool
     wallet_id: str | None
+    kyc_id: str | None
     reason: str | None
     last_progress_at: str | None
     done: bool
@@ -55,6 +56,7 @@ def initial_state() -> OnboardingState:
         "errors": [],
         "activated": False,
         "wallet_id": None,
+        "kyc_id": None,
         "reason": None,
         "last_progress_at": None,
         "done": False,
@@ -79,6 +81,7 @@ def _restart(now: datetime) -> dict[str, Any]:
         "errors": [{"field": None, "message": SESSION_EXPIRED_MESSAGE}],
         "activated": False,
         "wallet_id": None,
+        "kyc_id": None,
         "reason": None,
         "done": False,
         "last_progress_at": now.isoformat(),
@@ -141,6 +144,7 @@ def _activation_node(
         return {
             "activated": result["activated"],
             "wallet_id": result["wallet_id"],
+            "kyc_id": result["kyc_id"],
             "reason": result["reason"],
             "errors": [],
             "done": True,

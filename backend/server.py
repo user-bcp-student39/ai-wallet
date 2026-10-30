@@ -7,6 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from adapters.agui_endpoint import create_app
+from adapters.copilot_chat_model import CopilotChatModel, CopilotSettings, copilot_lifespan
 from adapters.sqlite_wallet_repository import SqliteWalletRepository
 from adapters.wallet_api_client import WalletApiClient
 from domain.onboarding import DEFAULT_SESSION_TTL
@@ -22,4 +23,9 @@ ttl = timedelta(seconds=int(os.environ["ONBOARDING_SESSION_TTL_SECONDS"])) if "O
 # Una ruta relativa se resuelve respecto a backend/, no al directorio desde el que se lanza uvicorn.
 db_path = BACKEND_DIR / os.environ.get(DB_PATH_ENV, DEFAULT_DB_PATH)
 
-app = create_app(WalletApiClient.from_env(), SqliteWalletRepository(db_path), ttl=ttl)
+# El cliente de Copilot se inicia al arrancar la aplicación y se cierra al apagarla.
+model = CopilotChatModel(CopilotSettings.from_env())
+
+app = create_app(
+    WalletApiClient.from_env(), SqliteWalletRepository(db_path), model, ttl=ttl, lifespan=copilot_lifespan(model)
+)

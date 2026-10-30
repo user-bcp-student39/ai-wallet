@@ -1,3 +1,5 @@
+import pytest
+
 from adapters.activation_tool import REGISTRY_ERROR_REASON, TOOL_NAME, build_activation_tool
 from application.onboarding_service import OnboardingService
 
@@ -45,6 +47,18 @@ def test_not_approved_returns_reason_without_activating(fake_gateway, fake_repos
     assert result["reason"] == "REJECTED"
 
 
+@pytest.mark.parametrize("status", ["PENDING", "REJECTED"])
+def test_not_active_verification_still_returns_the_saved_kyc_id(fake_gateway, fake_repository, status):
+    fake_gateway.activated = False
+    fake_gateway.status = status
+    tool = build_activation_tool(OnboardingService(fake_gateway, fake_repository))
+
+    result = _invoke(tool)
+
+    assert result == {"activated": False, "wallet_id": None, "kyc_id": "KYC-TEST-2", "reason": status}
+    assert [record.kyc_id for record in fake_repository.records] == ["KYC-TEST-2"]
+
+
 def test_api_unavailable_returns_reason_and_saves_nothing(fake_gateway, fake_repository):
     fake_gateway.activated = False
     fake_gateway.reason = "API_UNAVAILABLE"
@@ -53,6 +67,7 @@ def test_api_unavailable_returns_reason_and_saves_nothing(fake_gateway, fake_rep
     result = _invoke(tool)
 
     assert result["activated"] is False and result["reason"] == "API_UNAVAILABLE"
+    assert result["kyc_id"] is None
     assert fake_repository.records == []
 
 

@@ -35,6 +35,12 @@ INSERT INTO wallets (
 """
 
 
+SELECT_BY_KYC_ID = """
+SELECT kyc_id, wallet_id, state, document_number, document_type, name, last_name, phone, email, max_amount
+FROM wallets WHERE kyc_id = :kyc_id
+"""
+
+
 class SqliteWalletRepository:
     def __init__(self, path: str | PathLike[str]) -> None:
         self._path = str(path)
@@ -42,6 +48,15 @@ class SqliteWalletRepository:
 
     def save(self, record: WalletRecord) -> None:
         self._execute(INSERT, record.__dict__)
+
+    def find(self, kyc_id: str) -> WalletRecord | None:
+        try:
+            with closing(sqlite3.connect(self._path, timeout=CONNECT_TIMEOUT_SECONDS)) as connection:
+                connection.row_factory = sqlite3.Row
+                row = connection.execute(SELECT_BY_KYC_ID, {"kyc_id": kyc_id}).fetchone()
+        except sqlite3.Error as exc:
+            raise WalletPersistenceError(f"No se pudo leer el almacén de wallets ({type(exc).__name__})") from exc
+        return WalletRecord(**dict(row)) if row else None
 
     def _execute(self, statement: str, parameters: dict[str, str] | None = None) -> None:
         try:
