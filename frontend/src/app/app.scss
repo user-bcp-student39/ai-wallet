@@ -1,0 +1,48 @@
+:host {
+  display: block;
+}
+
+.shell {
+  width: min(100% - 32px, 1280px);
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 68px;
+  border-bottom: 1px solid #e8ebee;
+}
+
+.brand {
+  color: #172a3a;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.5px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.chat-col {
+  position: sticky;
+  top: 16px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chat-col {
+    position: static;
+  }
+}

@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
-import { OnboardingChat } from './onboarding/onboarding-chat';
+import { ChatPanel } from './chat/chat-panel';
+import { FlowDashboard } from './dashboard/flow-dashboard';
 
 @Component({
-  imports: [OnboardingChat],
   selector: 'app-root',
-  styleUrl: './app.css',
+  imports: [ChatPanel, FlowDashboard],
   templateUrl: './app.html',
+  styleUrl: './app.scss',
 })
 export class App {}

@@ -1,59 +1,28 @@
 # Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.5.
+Chat de onboarding de wallet en Angular, conectado al agente del backend (LangGraph vía AG-UI), con un tablero de trazabilidad del flujo.
 
-## Development server
+## Estructura
 
-To start a local development server, run:
+- `src/app/chat/`: panel del chat (pasos, burbujas, respuestas rápidas y composer).
+- `src/app/core/`: lógica sin UI.
+  - `onboarding-agent.ts`: conversación con el agente; pregunta campo a campo y reanuda cada interrupt con las respuestas del paso.
+  - `onboarding-transport.ts`: URL del agente (`ONBOARDING_URL`) y fábrica del cliente AG-UI (`AGENT_FACTORY`).
+  - `onboarding.model.ts`: pasos, campos y tipos del prompt/estado del grafo.
+  - `trace-store.ts` y `trace.model.ts`: trazas y analítica de la sesión.
+- `src/app/dashboard/`: tablero con la traza de eventos AG-UI (ejecuciones, nodos del grafo, interrupts, estado y analítica).
 
-```bash
-ng serve
-```
+## Configuración
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+La URL del agente (`onboardingUrl`) está en `src/environments/environment.ts` y apunta por defecto a `http://localhost:8000/agent`. El backend debe estar levantado (ver `backend/README.md`).
 
-## Code scaffolding
+El `threadId` se guarda en `sessionStorage`: al recargar la página se retoma el registro en el paso pendiente. «Salir de sesión» abre un thread nuevo.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Comandos
 
 ```bash
-ng generate --help
+npm install
+npm start          # http://localhost:4200
+npm run build
+npm test
 ```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
