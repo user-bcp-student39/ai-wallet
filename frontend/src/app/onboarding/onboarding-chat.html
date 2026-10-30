@@ -1,0 +1,53 @@
+<main class="onboarding">
+  <header>
+    <h1>Activa tu wallet</h1>
+    @if (activated()) {
+      <p>Onboarding completado</p>
+    } @else {
+      <p>Paso {{ currentStep() }} de {{ steps.length }}</p>
+    }
+  </header>
+
+  <ol class="steps">
+    @for (s of steps; track s.step) {
+      <li
+        [class.current]="s.step === currentStep() && !activated()"
+        [class.done]="s.step < currentStep() || activated()"
+      >
+        {{ s.label }}
+      </li>
+    }
+  </ol>
+
+  @for (error of unassignedErrors(); track error.field + error.message) {
+    <p class="error" role="alert">{{ error.message }}</p>
+  }
+
+  @if (activated()) {
+    <p class="result" role="status">Wallet activada. Ya puedes realizar pagos.</p>
+  } @else if (currentStep() === 5) {
+    <button type="button" (click)="confirmActivation()" [disabled]="isRunning()">
+      Activar wallet
+    </button>
+  } @else {
+    <form (submit)="submitStep($event)">
+      @for (field of currentFields(); track field.name) {
+        <label>
+          {{ field.label }}
+          <input
+            [name]="field.name"
+            [type]="field.type ?? 'text'"
+            [value]="values()[field.name] ?? ''"
+            (input)="setValue(field.name, $event)"
+          />
+        </label>
+        @if (fieldError(field.name); as message) {
+          <p class="error" role="alert">{{ message }}</p>
+        }
+      }
+      <button type="submit" [disabled]="isRunning()">Continuar</button>
+    </form>
+  }
+
+  <copilot-chat agentId="onboarding" [threadId]="threadId" />
+</main>
