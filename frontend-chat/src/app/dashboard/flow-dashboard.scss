@@ -1,0 +1,151 @@
+:host {
+  display: block;
+}
+
+.panel {
+  border: 1px solid #e1e8e5;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #fff;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+
+h2 small {
+  color: #829098;
+  font-weight: 600;
+}
+
+.link-button {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  color: #08704f;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.trace {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 220px);
+  min-height: 320px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.trace li {
+  border-left: 3px solid #cfeade;
+  margin-bottom: 8px;
+  padding: 4px 0 4px 10px;
+}
+
+.trace li.error {
+  border-left-color: #c0392b;
+}
+
+.trace-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 11px;
+}
+
+.time {
+  color: #829098;
+  font-variant-numeric: tabular-nums;
+}
+
+.route {
+  font-weight: 700;
+}
+
+.kind {
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: #eef2f0;
+  color: #52656d;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.kind-http-request,
+.kind-http-response {
+  background: #fdf1dc;
+  color: #8a5a0b;
+}
+
+.kind-tool-call,
+.kind-tool-result {
+  background: #e4ecfb;
+  color: #274a8a;
+}
+
+.kind-decision {
+  background: #f0e8fb;
+  color: #5a2f8f;
+}
+
+.kind-validation {
+  background: #e7f5f0;
+  color: #0b5b42;
+}
+
+.kind-analytics {
+  background: #fbe8f0;
+  color: #8a2455;
+}
+
+.duration {
+  color: #829098;
+}
+
+.trace-label {
+  margin: 3px 0 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+details {
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+summary {
+  color: #08704f;
+  cursor: pointer;
+}
+
+pre {
+  margin: 4px 0 0;
+  max-height: 220px;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f4f7f5;
+  font-size: 11px;
+  overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .trace {
+    max-height: 480px;
+    min-height: 0;
+  }
+}

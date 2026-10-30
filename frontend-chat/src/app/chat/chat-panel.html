@@ -1,0 +1,54 @@
+<section class="chat" aria-label="Conversación de onboarding">
+  <header class="chat-header">
+    <div>
+      <p class="eyebrow">ASISTENTE</p>
+      <h2>Activa tu wallet</h2>
+    </div>
+    <div class="header-actions">
+      @if (agent.phase() !== 'ASK_DNI' && agent.phase() !== 'ACTIVE') {
+        <button class="link-button" type="button" [disabled]="agent.busy()" (click)="agent.goBack()">← Volver</button>
+      }
+      <button class="link-button" type="button" [disabled]="agent.busy()" (click)="agent.exit()">Salir de sesión</button>
+    </div>
+  </header>
+
+  <ol class="steps" aria-label="Pasos del onboarding">
+    @for (step of steps; track step; let i = $index) {
+      <li [class.done]="i + 1 < agent.currentStep()" [class.current]="i + 1 === agent.currentStep()"
+          [attr.aria-current]="i + 1 === agent.currentStep() ? 'step' : null">
+        <span class="step-index">{{ i + 1 }}</span>
+        <span class="step-label">{{ step }}</span>
+      </li>
+    }
+  </ol>
+  <p class="step-caption">Paso {{ agent.currentStep() }} de {{ steps.length }}: {{ steps[agent.currentStep() - 1] }}</p>
+
+  <div #list class="messages" role="log" aria-live="polite">
+    @for (message of agent.messages(); track message.id) {
+      <div class="bubble" [class.bubble-user]="message.role === 'user'">{{ message.text }}</div>
+    }
+    @if (agent.busy()) {
+      <div class="bubble bubble-typing" role="status" aria-label="El asistente está escribiendo">
+        <span></span><span></span><span></span>
+      </div>
+    }
+  </div>
+
+  @if (agent.quickReplies().length) {
+    <div class="quick-replies">
+      @for (reply of agent.quickReplies(); track reply.label) {
+        <button class="chip" type="button" [disabled]="agent.busy()" (click)="quickReply(reply.text)">
+          {{ reply.label }}
+        </button>
+      }
+    </div>
+  }
+
+  <form class="composer" (submit)="submit($event)" novalidate>
+    <input type="text" name="message" autocomplete="off" aria-label="Tu mensaje"
+           [attr.inputmode]="agent.phase() === 'ASK_DNI' ? 'numeric' : 'text'"
+           [placeholder]="agent.phase() === 'ASK_DNI' ? 'Escribe tu DNI (8 dígitos)' : 'Escribe tu respuesta…'"
+           [value]="draft()" [disabled]="agent.busy()" (input)="onInput($event)" />
+    <button class="send" type="submit" [disabled]="agent.busy() || !draft().trim()">Enviar</button>
+  </form>
+</section>

@@ -1,0 +1,21 @@
+<div class="shell">
+  <header class="topbar">
+    <span class="brand">Wallet</span>
+  </header>
+
+  <nav class="scenarios" aria-label="Escenario del mock">
+    <span class="scenarios-label">Escenario</span>
+    @for (option of scenarios; track option.value) {
+      <button type="button" class="scenario-chip" [class.selected]="option.value === agent.scenario()"
+              [attr.aria-pressed]="option.value === agent.scenario()" [disabled]="agent.busy()"
+              (click)="agent.scenario.set(option.value)">
+        {{ option.label }}
+      </button>
+    }
+  </nav>
+
+  <main class="layout">
+    <app-chat-panel class="chat-col" />
+    <app-flow-dashboard class="dashboard-col" />
+  </main>
+</div>
