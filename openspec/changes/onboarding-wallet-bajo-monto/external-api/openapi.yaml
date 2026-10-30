@@ -1,0 +1,654 @@
+openapi: 3.0.3
+info:
+  title: Wallet mock W1–W6
+  version: 0.3.0
+  description: Mock Wallet W1–W6. Importes enteros en céntimos PEN. Estado en
+    memoria. Sin autenticación. Contrato local; cloud ajusta servidores a los
+    ocho grupos. Respuestas y efectos documentados por operación.
+servers:
+  - url: http://127.0.0.1:8787
+paths:
+  /health:
+    get:
+      summary: Salud
+      responses:
+        "200":
+          description: Consulta o repetición
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "400":
+          description: Campos o X-Mock-Latency-Ms inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+      tags:
+        - Servicio y grupos
+      description: Comprueba disponibilidad y almacenamiento en memoria. No modifica
+        datos. El servicio raíz remoto incluye enlaces a grupos y OpenAPI; la
+        URL del grupo informa su entorno.
+      operationId: getHealth
+      parameters:
+        - name: X-Mock-Latency-Ms
+          in: header
+          required: false
+          description: "Demora simulada por solicitud, en milisegundos. Entero de 0 a
+            5000, predeterminado 0. Se aplica antes de enviar la respuesta,
+            también en errores; no cambia el escenario ni retrasa otras
+            solicitudes. Valor inválido: 400 INVALID_MOCK_LATENCY antes de
+            ejecutar la operación."
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+        - name: latency
+          in: query
+          required: false
+          description: Latencia de la URL, entero de 0 a 5000 ms. El header
+            X-Mock-Latency-Ms tiene prioridad si se envían ambos. Ambos valores
+            deben ser válidos.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+  /kyc/verifications:
+    post:
+      summary: Crear wallet con KYC simulado
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kyc"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "400":
+          description: Entrada inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "413":
+          description: Cuerpo mayor a 65536 bytes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "429":
+          description: "Solo cloud: GROUP_LIMIT_RESET_REQUIRED. Reinicia el grupo."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "503":
+          description: Proveedor no disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                documentType:
+                  type: string
+                  enum:
+                    - TEST
+                  minLength: 1
+                  maxLength: 200
+                  description: Solo TEST. No enviar documentos reales.
+                document:
+                  type: string
+                  pattern: ^TEST-
+                  minLength: 1
+                  maxLength: 200
+                  description: Documento ficticio con prefijo TEST-.
+                scenario:
+                  type: string
+                  enum:
+                    - APPROVED
+                    - REJECTED
+                    - MANUAL_REVIEW
+                    - UNAVAILABLE
+                  minLength: 1
+                  maxLength: 200
+                  description: Escenario del proveedor simulado. Predeterminado APPROVED.
+                  default: APPROVED
+              required:
+                - documentType
+                - document
+            example:
+              documentType: TEST
+              document: TEST-001
+              scenario: APPROVED
+      tags:
+        - W1 · Registro y activación
+      description: Crea una verificación y una wallet con saldo cero. APPROVED, valor
+        predeterminado, activa; REJECTED rechaza; MANUAL_REVIEW deja PENDING y
+        abre soporte. UNAVAILABLE devuelve 503 KYC_UNAVAILABLE sin crear wallet.
+        Solo documentType TEST y document con prefijo TEST-. No evita altas
+        repetidas.
+      operationId: postKycVerifications
+      parameters:
+        - name: X-Mock-Latency-Ms
+          in: header
+          required: false
+          description: "Demora simulada por solicitud, en milisegundos. Entero de 0 a
+            5000, predeterminado 0. Se aplica antes de enviar la respuesta,
+            también en errores; no cambia el escenario ni retrasa otras
+            solicitudes. Valor inválido: 400 INVALID_MOCK_LATENCY antes de
+            ejecutar la operación."
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+        - name: latency
+          in: query
+          required: false
+          description: Latencia de la URL, entero de 0 a 5000 ms. El header
+            X-Mock-Latency-Ms tiene prioridad si se envían ambos. Ambos valores
+            deben ser válidos.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+  /kyc/verifications/{id}:
+    get:
+      summary: Consultar KYC
+      responses:
+        "200":
+          description: Consulta o repetición
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kyc"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "400":
+          description: Campos o X-Mock-Latency-Ms inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "404":
+          description: No existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID del recurso nombrado en la ruta. En /control/provider usa el ID
+            del pago.
+        - name: X-Mock-Latency-Ms
+          in: header
+          required: false
+          description: "Demora simulada por solicitud, en milisegundos. Entero de 0 a
+            5000, predeterminado 0. Se aplica antes de enviar la respuesta,
+            también en errores; no cambia el escenario ni retrasa otras
+            solicitudes. Valor inválido: 400 INVALID_MOCK_LATENCY antes de
+            ejecutar la operación."
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+        - name: latency
+          in: query
+          required: false
+          description: Latencia de la URL, entero de 0 a 5000 ms. El header
+            X-Mock-Latency-Ms tiene prioridad si se envían ambos. Ambos valores
+            deben ser válidos.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+      tags:
+        - W1 · Registro y activación
+      description: Consulta la verificación por su ID kyc, distinto al wallet_id.
+        Devuelve 404 NOT_FOUND si no existe en el grupo.
+      operationId: getKycVerificationsByid
+  /kyc/verifications/{id}/decision:
+    post:
+      summary: Resolver revisión humana
+      responses:
+        "200":
+          description: Consulta o repetición
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kyc"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "400":
+          description: Entrada inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "404":
+          description: No existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "409":
+          description: Conflicto de estado, saldo o idempotencia
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "413":
+          description: Cuerpo mayor a 65536 bytes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "429":
+          description: "Solo cloud: GROUP_LIMIT_RESET_REQUIRED. Reinicia el grupo."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID del recurso nombrado en la ruta. En /control/provider usa el ID
+            del pago.
+        - name: X-Mock-Latency-Ms
+          in: header
+          required: false
+          description: "Demora simulada por solicitud, en milisegundos. Entero de 0 a
+            5000, predeterminado 0. Se aplica antes de enviar la respuesta,
+            también en errores; no cambia el escenario ni retrasa otras
+            solicitudes. Valor inválido: 400 INVALID_MOCK_LATENCY antes de
+            ejecutar la operación."
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+        - name: latency
+          in: query
+          required: false
+          description: Latencia de la URL, entero de 0 a 5000 ms. El header
+            X-Mock-Latency-Ms tiene prioridad si se envían ambos. Ambos valores
+            deben ser válidos.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decision:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - REJECTED
+                  minLength: 1
+                  maxLength: 200
+                  description: Decisión final del operador sobre la verificación.
+              required:
+                - decision
+            example:
+              decision: ACTIVE
+      tags:
+        - W1 · Registro y activación
+      description: "Decide ACTIVE o REJECTED sobre una verificación PENDING, actualiza
+        su wallet y resuelve su caso de soporte. Repetir la misma decisión
+        devuelve 200; cambiar una decisión final devuelve 409 DECISION_CONFLICT.
+        Decisión inválida: 400 INVALID_DECISION."
+      operationId: postKycVerificationsByidDecision
+  /wallets/{id}:
+    get:
+      summary: Saldo contable, reservado y disponible
+      responses:
+        "200":
+          description: Consulta o repetición
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "400":
+          description: Campos o X-Mock-Latency-Ms inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+        "404":
+          description: No existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          headers:
+            X-Mock-Latency-Ms:
+              description: Demora simulada aplicada, en milisegundos.
+              schema:
+                type: integer
+                minimum: 0
+                maximum: 5000
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID del recurso nombrado en la ruta. En /control/provider usa el ID
+            del pago.
+        - name: X-Mock-Latency-Ms
+          in: header
+          required: false
+          description: "Demora simulada por solicitud, en milisegundos. Entero de 0 a
+            5000, predeterminado 0. Se aplica antes de enviar la respuesta,
+            también en errores; no cambia el escenario ni retrasa otras
+            solicitudes. Valor inválido: 400 INVALID_MOCK_LATENCY antes de
+            ejecutar la operación."
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+        - name: latency
+          in: query
+          required: false
+          description: Latencia de la URL, entero de 0 a 5000 ms. El header
+            X-Mock-Latency-Ms tiene prioridad si se envían ambos. Ambos valores
+            deben ser válidos.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 5000
+            default: 0
+          example: 1000
+      tags:
+        - W1 · Registro y activación
+      description: "Consulta estado y saldos en céntimos. available = balance -
+        reserved. Solo los pagos PENDING reservan saldo. wallet-demo empieza
+        ACTIVE con 100000. Wallet inexistente: 404 NOT_FOUND."
+      operationId: getWalletsByid
+  
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Código estable del error.
+        processed:
+          type: boolean
+        paymentId:
+          type: string
+          description: Pago creado aunque la respuesta sea 504.
+        status:
+          type: string
+          enum:
+            - PENDING
+            - SUCCEEDED
+            - REJECTED
+            - REVERSED
+      required:
+        - error
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+        storage:
+          type: string
+          enum:
+            - memory
+        environment:
+          type: string
+        startedAt:
+          type: string
+        service:
+          type: string
+        groups:
+          type: string
+        openapi:
+          type: string
+      required:
+        - status
+        - storage
+    Kyc:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID de verificación KYC.
+        wallet_id:
+          type: string
+          description: ID de la wallet creada.
+        scenario:
+          type: string
+          enum:
+            - APPROVED
+            - REJECTED
+            - MANUAL_REVIEW
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - PENDING
+            - REJECTED
+      required:
+        - id
+        - wallet_id
+        - scenario
+        - status
+    Wallet:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - PENDING
+            - REJECTED
+        balance:
+          type: integer
+          description: Saldo contable en céntimos.
+        reserved:
+          type: integer
+          description: Suma de pagos PENDING en céntimos.
+        available:
+          type: integer
+          description: balance menos reserved.
+        currency:
+          type: string
+          enum:
+            - PEN
+      required:
+        - id
+        - status
+        - balance
+        - reserved
+        - available
+        - currency
+  parameters:
+    MockLatency:
+      name: X-Mock-Latency-Ms
+      in: header
+      required: false
+      description: "Demora simulada por solicitud, en milisegundos. Entero de 0 a
+        5000, predeterminado 0. Se aplica antes de enviar la respuesta, también
+        en errores; no cambia el escenario ni retrasa otras solicitudes. Valor
+        inválido: 400 INVALID_MOCK_LATENCY antes de ejecutar la operación."
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 5000
+        default: 0
+      example: 1000
+    MockLatencyQuery:
+      name: latency
+      in: query
+      required: false
+      description: Latencia de la URL, entero de 0 a 5000 ms. El header
+        X-Mock-Latency-Ms tiene prioridad si se envían ambos. Ambos valores
+        deben ser válidos.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 5000
+        default: 0
+      example: 1000

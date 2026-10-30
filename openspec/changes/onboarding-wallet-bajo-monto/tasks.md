@@ -13,7 +13,7 @@
 
 ## 3. Adaptadores y agente LangGraph
 
-- [ ] 3.1 Implementar en `backend/adapters/` el cliente de salida hacia la API configurable por variable de entorno; verificar con `curl https://bcp-wallet-mock.yefri.workers.dev/groups/6?latency=1` y con una prueba que simula la respuesta
+- [ ] 3.1 Implementar en `backend/adapters/` el cliente de salida hacia la API configurable por variable de entorno, según el contrato de [external-api/openapi.yaml](./external-api/openapi.yaml); verificar con `curl https://bcp-wallet-mock.yefri.workers.dev/groups/6?latency=1` y con una prueba que simula la respuesta
 - [ ] 3.2 Implementar el workflow LangGraph con un nodo por paso, aristas condicionales que vuelven al paso con error y compilación con `MemorySaver`; cada invocación usa `config["configurable"]["thread_id"]`; verificar con pruebas del grafo para un flujo válido, otro con DNI inválido y otro con un `thread_id` nuevo
 - [ ] 3.3 Exponer el agente mediante un endpoint compatible con CopilotKit; verificar que el frontend recibe una respuesta del agente
 
