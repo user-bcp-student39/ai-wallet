@@ -2,7 +2,7 @@
 
 ## Context
 
-El proyecto no tiene código de aplicación ni specs previas; el cambio define el primer comportamiento de la wallet. Stack confirmado: frontend en Angular con CopilotKit y backend en Python con LangGraph, organizado en `backend/` y `frontend/` en la raíz del repositorio. La tool externa es la API `https://bcp-wallet-mock.yefri.workers.dev`; su respuesta actual (`/groups/6?latency=1`) es un estado de salud (`status`, `environment`, `storage`, `startedAt`) y no define endpoints de onboarding, por lo que su contrato real queda pendiente. Ver [proposal.md](./proposal.md) para la motivación y [specs/wallet-onboarding/spec.md](./specs/wallet-onboarding/spec.md) para los requisitos.
+El proyecto no tiene código de aplicación ni specs previas; el cambio define el primer comportamiento de la wallet. Stack confirmado: frontend en Angular con CopilotKit y backend en Python con LangGraph, organizado en `backend/` y `frontend/` en la raíz del repositorio. La tool externa es la API `https://bcp-wallet-mock.yefri.workers.dev`. Su contrato para el registro y activación (tag W1: KYC y consulta de wallet) está en [external-api/openapi.yaml](./external-api/openapi.yaml); las operaciones fuera de W1 no forman parte de este cambio. Ver [proposal.md](./proposal.md) para la motivación y [specs/wallet-onboarding/spec.md](./specs/wallet-onboarding/spec.md) para los requisitos.
 
 ## Versiones de tecnologías
 
@@ -84,7 +84,7 @@ flowchart LR
 - [Pérdida de datos al expirar la sesión] → Mensaje claro antes de expirar y reinicio explícito, para que el usuario sepa que debe volver a ingresar sus datos.
 - [Validación de formato del DNI no equivale a identidad real] → Aceptado para el mínimo viable; la verificación de identidad queda fuera de alcance.
 - [Reglas de formato de teléfono y email aún no definidas en detalle] → Ver preguntas abiertas.
-- [Contrato de la tool desconocido: la API mock solo expone un estado de salud] → Puerto `WalletGateway` con adaptador aislado; el resto del sistema no depende del contrato real.
+- [Contrato de la API mock puede diferir del entorno real] → Puerto `WalletGateway` con adaptador aislado; el resto del sistema no depende del contrato concreto.
 - [`MemorySaver` se pierde al reiniciar el backend] → Un `thread_id` no encontrado se trata como sesión expirada: el flujo vuelve al paso 1. Un checkpointer persistente queda fuera de este alcance.
 - [LangGraph y CopilotKit requieren una conexión de agente entre backend y frontend] → Endpoint de agente con prueba de conexión antes de construir la interfaz.
 
@@ -95,5 +95,5 @@ No aplica: el sistema no tiene datos previos. Rollback: desactivar la ruta de on
 ## Open Questions
 
 - Formato exacto aceptado para teléfono (prefijo, longitud) y para email (dominios permitidos o solo formato estándar). Pueden definirse en la fase de tareas sin cambiar los requisitos actuales.
-- Endpoints y contrato reales de la tool de onboarding en la API externa. El contrato se documentará en [external-api/openapi.yaml](./external-api/openapi.yaml), que hoy está vacío. Mientras no tenga contenido, el adaptador se implementa contra el puerto y con respuestas simuladas.
+- Confirmar que el contrato W1 de [external-api/openapi.yaml](./external-api/openapi.yaml) coincide con el comportamiento real de la API externa. Mientras no se confirme, el adaptador se implementa contra el puerto y se prueba con respuestas simuladas.
 - Resuelta: el avance de sesión vive en el backend, en el estado de LangGraph con `MemorySaver`, y el frontend solo guarda el `thread_id` (ver Decisions).

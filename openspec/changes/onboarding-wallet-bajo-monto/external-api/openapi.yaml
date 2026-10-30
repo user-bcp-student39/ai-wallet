@@ -8,69 +8,6 @@ info:
 servers:
   - url: http://127.0.0.1:8787
 paths:
-  /health:
-    get:
-      summary: Salud
-      responses:
-        "200":
-          description: Consulta o repetición
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Health"
-          headers:
-            X-Mock-Latency-Ms:
-              description: Demora simulada aplicada, en milisegundos.
-              schema:
-                type: integer
-                minimum: 0
-                maximum: 5000
-        "400":
-          description: Campos o X-Mock-Latency-Ms inválidos.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-          headers:
-            X-Mock-Latency-Ms:
-              description: Demora simulada aplicada, en milisegundos.
-              schema:
-                type: integer
-                minimum: 0
-                maximum: 5000
-      tags:
-        - Servicio y grupos
-      description: Comprueba disponibilidad y almacenamiento en memoria. No modifica
-        datos. El servicio raíz remoto incluye enlaces a grupos y OpenAPI; la
-        URL del grupo informa su entorno.
-      operationId: getHealth
-      parameters:
-        - name: X-Mock-Latency-Ms
-          in: header
-          required: false
-          description: "Demora simulada por solicitud, en milisegundos. Entero de 0 a
-            5000, predeterminado 0. Se aplica antes de enviar la respuesta,
-            también en errores; no cambia el escenario ni retrasa otras
-            solicitudes. Valor inválido: 400 INVALID_MOCK_LATENCY antes de
-            ejecutar la operación."
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 5000
-            default: 0
-          example: 1000
-        - name: latency
-          in: query
-          required: false
-          description: Latencia de la URL, entero de 0 a 5000 ms. El header
-            X-Mock-Latency-Ms tiene prioridad si se envían ambos. Ambos valores
-            deben ser válidos.
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 5000
-            default: 0
-          example: 1000
   /kyc/verifications:
     post:
       summary: Crear wallet con KYC simulado
@@ -543,30 +480,6 @@ components:
             - REVERSED
       required:
         - error
-    Health:
-      type: object
-      properties:
-        status:
-          type: string
-          enum:
-            - ok
-        storage:
-          type: string
-          enum:
-            - memory
-        environment:
-          type: string
-        startedAt:
-          type: string
-        service:
-          type: string
-        groups:
-          type: string
-        openapi:
-          type: string
-      required:
-        - status
-        - storage
     Kyc:
       type: object
       properties:
