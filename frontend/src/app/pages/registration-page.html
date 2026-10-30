@@ -1,0 +1,55 @@
+<section class="intro" aria-labelledby="page-title">
+  <p class="eyebrow">TU WALLET</p>
+  <h1 id="page-title">Empieza a usar tu wallet</h1>
+  <p class="intro-copy">Completa tu registro con tu DNI para continuar.</p>
+</section>
+
+<app-step-nav [current]="1" />
+
+<section class="card create-card" aria-labelledby="create-title" [attr.aria-busy]="busy()">
+  <div class="card-heading">
+    <div class="heading-icon" aria-hidden="true">01</div>
+    <div>
+      <p class="eyebrow">REGISTRO</p>
+      <h2 id="create-title">Tus datos</h2>
+    </div>
+  </div>
+
+  <form (submit)="submit($event)" novalidate>
+    <label for="document-type">Tipo de documento</label>
+    <select id="document-type" name="documentType" [disabled]="busy()">
+      @for (option of documentTypes; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+
+    <label for="dni">Número de DNI</label>
+    <input id="dni" name="dni" type="text" inputmode="numeric" autocomplete="off"
+           [maxLength]="dniLength" [value]="dni()" [disabled]="busy()"
+           [attr.aria-invalid]="dniError() ? 'true' : null" aria-describedby="dni-hint"
+           (input)="onDniInput($event)" />
+    <p id="dni-hint" class="field-hint" [class.field-error]="dniError()">
+      {{ dniError() || 'Ingresa los ' + dniLength + ' dígitos de tu DNI.' }}
+    </p>
+
+    <details class="advanced-settings">
+      <summary>Opciones avanzadas</summary>
+      <p class="field-hint">Ajusta el resultado de verificación para revisar distintos estados del flujo.</p>
+      <label for="scenario">Resultado de verificación</label>
+      <select id="scenario" name="scenario" [disabled]="busy()"
+              (change)="scenario.set($any($event.target).value)">
+        @for (option of scenarios; track option.value) {
+          <option [value]="option.value" [selected]="option.value === scenario()">{{ option.label }}</option>
+        }
+      </select>
+    </details>
+
+    <button class="button button-primary" type="submit" [disabled]="busy()">
+      @if (busy()) { Procesando… } @else { Comenzar registro <span aria-hidden="true">→</span> }
+    </button>
+  </form>
+
+  @if (errorMessage()) {
+    <div class="feedback feedback-error" role="alert">{{ errorMessage() }}</div>
+  }
+</section>

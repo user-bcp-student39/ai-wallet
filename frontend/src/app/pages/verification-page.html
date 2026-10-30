@@ -1,0 +1,51 @@
+<section class="intro" aria-labelledby="page-title">
+  <p class="eyebrow">VERIFICACIÓN</p>
+  <h1 id="page-title">Revisando tu registro</h1>
+</section>
+
+<app-step-nav [current]="2" />
+
+<section class="card" aria-labelledby="verification-title" [attr.aria-busy]="loading() || busy()">
+  <div class="card-heading">
+    <div class="heading-icon" aria-hidden="true">02</div>
+    <div>
+      <p class="eyebrow">ESTADO</p>
+      <h2 id="verification-title">Verificación de identidad</h2>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="feedback feedback-info" role="status">Consultando tu verificación…</p>
+  } @else if (verification(); as v) {
+    <dl class="review-box">
+      <div><dt>Resultado</dt><dd>{{ scenarioLabel() }}</dd></div>
+      <div><dt>Estado</dt><dd><span class="status-chip">{{ v.status }}</span></dd></div>
+    </dl>
+
+    @if (v.status === 'PENDING') {
+      <p class="field-hint">Tu registro necesita una revisión. Resuélvela para continuar.</p>
+      <div class="button-row">
+        <button class="button button-primary" type="button" [disabled]="busy()" (click)="decide('ACTIVE')">
+          Aprobar
+        </button>
+        <button class="button button-secondary" type="button" [disabled]="busy()" (click)="decide('REJECTED')">
+          Rechazar
+        </button>
+      </div>
+    } @else if (v.status === 'REJECTED') {
+      <div class="feedback feedback-error" role="alert">
+        No pudimos activar tu wallet con los datos enviados. Puedes intentar un nuevo registro.
+      </div>
+      <a class="button button-secondary" routerLink="/registro">Volver a registrarme</a>
+    }
+  }
+
+  @if (errorMessage()) {
+    <div class="feedback feedback-error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  <nav class="nav-actions" aria-label="Navegación del flujo">
+    <a class="button button-secondary" routerLink="/registro">← Volver</a>
+    <a class="button button-secondary" routerLink="/registro">Salir de sesión</a>
+  </nav>
+</section>

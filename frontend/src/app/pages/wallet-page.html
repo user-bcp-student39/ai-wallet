@@ -1,0 +1,41 @@
+<section class="intro" aria-labelledby="page-title">
+  <p class="eyebrow">TU WALLET</p>
+  <h1 id="page-title">Wallet activa</h1>
+</section>
+
+<app-step-nav [current]="3" />
+
+<section class="card" aria-labelledby="wallet-title" [attr.aria-busy]="loading()">
+  <div class="card-heading">
+    <div class="heading-icon" aria-hidden="true">03</div>
+    <div>
+      <p class="eyebrow">SALDOS</p>
+      <h2 id="wallet-title">Tu wallet</h2>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <p class="feedback feedback-info" role="status">Cargando saldos…</p>
+  } @else if (wallet(); as w) {
+    <p><span class="status-chip">{{ w.status }}</span></p>
+    <ul class="balance-list">
+      <li><span>Contable</span><strong>{{ formatPEN(w.balance) }}</strong></li>
+      <li><span>Reservado</span><strong>{{ formatPEN(w.reserved) }}</strong></li>
+      <li><span>Disponible</span><strong>{{ formatPEN(w.available) }}</strong></li>
+    </ul>
+
+    <div class="payment-entry">
+      <p>Pagos de bajo monto</p>
+      <button class="button button-primary" type="button" disabled>Pagar</button>
+      <p class="field-hint">Los pagos estarán disponibles en la siguiente etapa.</p>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="feedback feedback-error" role="alert">{{ errorMessage() }}</div>
+  }
+
+  <nav class="nav-actions" aria-label="Navegación del flujo">
+    <a class="button button-secondary" routerLink="/registro">Salir de sesión</a>
+  </nav>
+</section>
