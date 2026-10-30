@@ -11,7 +11,14 @@ import {
   classifyFailure,
   validateField,
 } from './onboarding.model';
-import { AGENT_FACTORY, AgentLike, ONBOARDING_URL } from './onboarding-transport';
+import {
+  AGENT_FACTORY,
+  ASSISTANT_FACTORY,
+  ASSISTANT_URL,
+  AgentLike,
+  AssistantLike,
+  ONBOARDING_URL,
+} from './onboarding-transport';
 import { TraceStore } from './trace-store';
 
 export { STEPS } from './onboarding.model';
@@ -36,6 +43,10 @@ const QR_RESTART: QuickReply = { label: 'Empezar de nuevo', text: 'Reiniciar' };
 const RESTART = /^(reiniciar|salir|empezar de nuevo|nuevo registro|intentar de nuevo)/;
 const CONFIRM = /^(si|activ|confirm|acept|ok)/;
 const RETRY = /^reintent/;
+const GO_TO_PAYMENTS = /^ir a pagos/;
+
+const ASSISTANT_ERROR = 'No pudimos conectar con el asistente. Inténtalo de nuevo en unos instantes.';
+const ASSISTANT_EMPTY = 'No recibí una respuesta del asistente. ¿Puedes reformular tu mensaje?';
 
 const THREAD_STORAGE_KEY = 'onboarding.threadId';
 
@@ -74,7 +85,9 @@ function parsePrompt(value: unknown): OnboardingPrompt | null {
 @Injectable({ providedIn: 'root' })
 export class OnboardingAgent {
   private readonly createAgent = inject(AGENT_FACTORY);
+  private readonly createAssistant = inject(ASSISTANT_FACTORY);
   private readonly url = inject(ONBOARDING_URL);
+  private readonly assistantUrl = inject(ASSISTANT_URL);
   private readonly trace = inject(TraceStore);
 
   readonly messages = signal<ChatMessage[]>([]);
@@ -90,6 +103,7 @@ export class OnboardingAgent {
   private msgSeq = 0;
   private closed = false;
   private agent: AgentLike | null = null;
+  private assistant: { threadId: string; agent: AssistantLike } | null = null;
   private subscription: { unsubscribe(): void } | null = null;
   private interruptId: string | undefined;
   private incoming: OnboardingPrompt | null = null;
@@ -177,6 +191,7 @@ export class OnboardingAgent {
     this.answers = {};
     this.currentField.set(null);
     this.phase.set('COLLECTING');
+    this.assistant = null;
 
     this.subscription?.unsubscribe();
     const agent = this.createAgent(threadId);
@@ -274,7 +289,7 @@ export class OnboardingAgent {
       case 'RETRY':
         return this.onRetry(normalized);
       case 'ACTIVE':
-        return this.onActive(normalized);
+        return this.onActive(text, normalized);
       case 'UNAVAILABLE':
         return this.onUnavailable(normalized);
       case 'REJECTED':
@@ -342,11 +357,57 @@ export class OnboardingAgent {
     }
   }
 
-  private async onActive(normalized: string): Promise<void> {
-    if (/pag/.test(normalized)) {
+  private async onActive(text: string, normalized: string): Promise<void> {
+    if (GO_TO_PAYMENTS.test(normalized)) {
       this.reply('El punto de entrada de pagos de bajo monto se habilitará en la siguiente etapa.', [QR_PAY, QR_RESTART]);
-    } else {
-      this.reply('Tu wallet ya está activa. Puedes ir a pagos o empezar de nuevo.', [QR_PAY, QR_RESTART]);
+      return;
+    }
+    await this.askAssistant(text);
+  }
+
+  /** Tras la activación, el mensaje libre lo responde el agente del asistente en el mismo thread de la sesión. */
+  private async askAssistant(text: string): Promise<void> {
+    const threadId = this.sessionId();
+    if (this.assistant?.threadId !== threadId) {
+      this.assistant = { threadId, agent: this.createAssistant(threadId) };
+    }
+    const { agent } = this.assistant;
+    agent.addMessage({ id: crypto.randomUUID(), role: 'user', content: text });
+
+    this.trace.log({
+      from: 'ui',
+      to: 'agent',
+      kind: 'request',
+      label: `POST ${this.assistantUrl}`,
+      payload: { threadId },
+    });
+    const startedAt = performance.now();
+    try {
+      const { newMessages } = await agent.runAgent();
+      const answers = newMessages
+        .filter((message) => message.role === 'assistant' && typeof message.content === 'string' && message.content.trim())
+        .map((message) => message.content as string);
+      this.trace.log({
+        from: 'agent',
+        to: 'ui',
+        kind: 'run',
+        label: 'Respuesta del asistente',
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      for (const answer of answers.length ? answers : [ASSISTANT_EMPTY]) {
+        this.reply(answer, [QR_PAY, QR_RESTART]);
+      }
+    } catch (error) {
+      this.trace.log({
+        from: 'agent',
+        to: 'ui',
+        kind: 'run',
+        status: 'error',
+        label: 'La ejecución del asistente falló',
+        durationMs: Math.round(performance.now() - startedAt),
+        payload: String(error),
+      });
+      this.reply(ASSISTANT_ERROR, [QR_PAY, QR_RESTART]);
     }
   }
 
