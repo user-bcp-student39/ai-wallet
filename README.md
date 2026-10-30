@@ -31,7 +31,7 @@ La solución es un chat asistente de onboarding conversacional que:
 
 ### Para quién
 
-Usuario final (web) de una wallet de bajo monto. Usuario es una persona natural. El evaluador técnico es también usuario de este README: por eso el arranque se resume en dos terminales y un archivo `.env`.
+Usuario final (web) de una wallet de bajo monto. Usuario es una persona natural.
 
 ### Reto
 
