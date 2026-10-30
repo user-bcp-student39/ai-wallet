@@ -26,7 +26,10 @@ Fuera de alcance: mecanismos de cobro, integración con proveedores de pago y mo
 
 ## Impact
 
-- Nuevo módulo de onboarding en la aplicación web (interfaz conversacional y validaciones de formulario).
+- Estructura del repositorio: carpetas `backend/` (Python, arquitectura hexagonal, LangGraph) y `frontend/` (Angular con CopilotKit).
+- Backend: agentes y workflow de onboarding definidos con LangGraph, expuestos a CopilotKit mediante un endpoint.
+- Adaptador de salida hacia la API externa `https://bcp-wallet-mock.yefri.workers.dev`, configurable por variable de entorno.
+- Frontend: interfaz conversacional de onboarding con validaciones de formulario; no llama directamente a la API externa.
 - Almacenamiento temporal del avance del onboarding con tiempo de expiración configurable.
 - Modelo de estado de la wallet (pendiente de onboarding / activa).
 - Sin cambios en APIs de pagos existentes; el punto de entrada de pagos solo se enlaza al estado activo.
