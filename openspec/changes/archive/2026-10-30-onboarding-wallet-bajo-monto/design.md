@@ -2,7 +2,7 @@
 
 ## Context
 
-El proyecto no tiene código de aplicación ni specs previas; el cambio define el primer comportamiento de la wallet. Stack confirmado: frontend en Angular con CopilotKit y backend en Python con LangGraph, organizado en `backend/` y `frontend/` en la raíz del repositorio. La tool externa es la API `https://bcp-wallet-mock.yefri.workers.dev`; su respuesta actual (`/groups/6?latency=1`) es un estado de salud (`status`, `environment`, `storage`, `startedAt`) y no define endpoints de onboarding, por lo que su contrato real queda pendiente. Ver [proposal.md](./proposal.md) para la motivación y [specs/wallet-onboarding/spec.md](./specs/wallet-onboarding/spec.md) para los requisitos.
+El proyecto no tiene código de aplicación ni specs previas; el cambio define el primer comportamiento de la wallet. Stack confirmado: frontend en Angular con CopilotKit y backend en Python con LangGraph, organizado en `backend/` y `frontend/` en la raíz del repositorio. La tool externa es la API del mock de la hackatón `https://bcp-wallet-mock.yefri.workers.dev`; cada grupo usa su prefijo, por lo que la base del grupo 6 es `https://bcp-wallet-mock.yefri.workers.dev/groups/6` (variable `WALLET_API_BASE_URL`). Su contrato para el registro y activación (tag W1: KYC y consulta de wallet) está en [external-api/openapi.yaml](./external-api/openapi.yaml); las operaciones fuera de W1 no forman parte de este cambio. Ver [proposal.md](./proposal.md) para la motivación y [specs/wallet-onboarding/spec.md](./specs/wallet-onboarding/spec.md) para los requisitos.
 
 ## Versiones de tecnologías
 
@@ -10,10 +10,12 @@ Versiones estables más recientes verificadas en los registros oficiales (PyPI, 
 
 | Tecnología | Versión | Motivo |
 |---|---|---|
-| Node.js | 26.13.0 (LTS) | `engines` de `@angular/cli` 22 exige `^22.22.3 \|\| ^24.15.0 \|\| >=26.0.0` |
-| Python | 3.13.18 | Última 3.13 publicada. Se evita 3.14/3.15: `copilotkit` en PyPI exige `<3.15` y LangGraph no declara 3.14 en sus clasificadores |
+| Node.js | 26.9.0 | Versión instalada en el entorno de desarrollo. Cumple `engines` de `@angular/cli` 22: `^22.22.3 \|\| ^24.15.0 \|\| >=26.0.0` |
+| Python | 3.13.15 | Versión 3.13 instalada en el entorno de desarrollo (gestor uv solo ofrece 3.13.14 para descarga). Se evita 3.14/3.15: `copilotkit` en PyPI exige `<3.15` y LangGraph no declara 3.14 en sus clasificadores |
 | langgraph | 1.2.18 | PyPI. `MemorySaver` disponible vía `langgraph-checkpoint` 4.3.1 |
+| ag-ui-langgraph | 0.0.47 | PyPI. Adaptador oficial LangGraph → protocolo AG-UI, que consume `@ag-ui/client` 1.0.2 (dependencia de `@copilotkit/angular` 0.6.0) |
 | FastAPI | 0.162.0 | PyPI |
+| uvicorn | 0.54.0 | PyPI. Servidor ASGI del endpoint |
 | httpx | 0.28.1 | PyPI |
 | pytest | 9.2.0 | PyPI |
 | `@angular/core`, `@angular/cli` | 22.2.4, 22.2.5 | npm `latest` |
@@ -44,6 +46,7 @@ Versiones estables más recientes verificadas en los registros oficiales (PyPI, 
 - **Validación en el servidor además de la interfaz:** la interfaz muestra el mensaje de corrección al instante, pero el servidor vuelve a validar cada paso antes de persistirlo. Así una petición manipulada no puede saltarse una regla.
 - **Expiración de sesión en el servidor:** el avance se guarda con una marca de tiempo y un tiempo de vida leído de configuración (`5 min` por defecto). Alternativa descartada: expirar solo en el cliente, porque puede manipularse.
 - **Estado de sesión con `MemorySaver` de LangGraph:** el grafo compila con `MemorySaver` como checkpointer. Cada sesión usa un `thread_id` (UUID v4) generado por el frontend y enviado en `config["configurable"]["thread_id"]` en cada invocación. El estado contiene los datos del onboarding, el paso actual y la marca de tiempo del último avance; el TTL se comprueba al entrar en cada nodo. El frontend guarda el `thread_id` en `sessionStorage` para recuperarlo tras recargar la pantalla. Alternativa descartada: `localStorage`, porque la sesión debe terminar con la pestaña.
+- **Documento TEST derivado del DNI:** se envía `TEST-` + los primeros 16 caracteres hexadecimales de HMAC-SHA256(DNI) con la clave `WALLET_DOCUMENT_KEY`. Un SHA-256 plano sería reversible por fuerza bruta (solo hay 10^8 DNI). Si falta la clave, el cliente no arranca.
 - **Configuración del tiempo de sesión:** valor en configuración del proyecto, no hardcodeado, para que cambie sin tocar código.
 - **Monto máximo como límite configurable del usuario:** el usuario elige un valor en (0, 500] PEN. El tope de 500 es una constante de negocio, no un valor configurable por usuario.
 
@@ -84,7 +87,7 @@ flowchart LR
 - [Pérdida de datos al expirar la sesión] → Mensaje claro antes de expirar y reinicio explícito, para que el usuario sepa que debe volver a ingresar sus datos.
 - [Validación de formato del DNI no equivale a identidad real] → Aceptado para el mínimo viable; la verificación de identidad queda fuera de alcance.
 - [Reglas de formato de teléfono y email aún no definidas en detalle] → Ver preguntas abiertas.
-- [Contrato de la tool desconocido: la API mock solo expone un estado de salud] → Puerto `WalletGateway` con adaptador aislado; el resto del sistema no depende del contrato real.
+- [Contrato de la API mock puede diferir del entorno real] → Puerto `WalletGateway` con adaptador aislado; el resto del sistema no depende del contrato concreto.
 - [`MemorySaver` se pierde al reiniciar el backend] → Un `thread_id` no encontrado se trata como sesión expirada: el flujo vuelve al paso 1. Un checkpointer persistente queda fuera de este alcance.
 - [LangGraph y CopilotKit requieren una conexión de agente entre backend y frontend] → Endpoint de agente con prueba de conexión antes de construir la interfaz.
 
@@ -95,5 +98,5 @@ No aplica: el sistema no tiene datos previos. Rollback: desactivar la ruta de on
 ## Open Questions
 
 - Formato exacto aceptado para teléfono (prefijo, longitud) y para email (dominios permitidos o solo formato estándar). Pueden definirse en la fase de tareas sin cambiar los requisitos actuales.
-- Endpoints y contrato reales de la tool de onboarding en la API externa. El contrato se documentará en [external-api/openapi.yaml](./external-api/openapi.yaml), que hoy está vacío. Mientras no tenga contenido, el adaptador se implementa contra el puerto y con respuestas simuladas.
+- Confirmar que el contrato W1 de [external-api/openapi.yaml](./external-api/openapi.yaml) coincide con el comportamiento real de la API externa. Mientras no se confirme, el adaptador se implementa contra el puerto y se prueba con respuestas simuladas.
 - Resuelta: el avance de sesión vive en el backend, en el estado de LangGraph con `MemorySaver`, y el frontend solo guarda el `thread_id` (ver Decisions).
