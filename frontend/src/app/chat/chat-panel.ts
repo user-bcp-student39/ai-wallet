@@ -28,7 +28,14 @@ export class ChatPanel {
     if (field) {
       return `Escribe tu ${field.label}`;
     }
-    return this.agent.phase() === 'CONFIRM' ? 'Escribe «activar» para confirmar' : 'Escribe tu respuesta…';
+    switch (this.agent.phase()) {
+      case 'CONFIRM':
+        return 'Escribe «activar» para confirmar';
+      case 'ACTIVE':
+        return 'Pregunta al asistente o pide ver tus datos…';
+      default:
+        return 'Escribe tu respuesta…';
+    }
   });
 
   private readonly list = viewChild<ElementRef<HTMLElement>>('list');

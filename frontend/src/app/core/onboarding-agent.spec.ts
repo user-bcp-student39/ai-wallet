@@ -2,8 +2,28 @@ import { TestBed } from '@angular/core/testing';
 import { AgentSubscriber } from '@ag-ui/client';
 import { OnboardingAgent } from './onboarding-agent';
 import { OnboardingPrompt, OnboardingState } from './onboarding.model';
-import { AGENT_FACTORY, AgentLike } from './onboarding-transport';
+import { AGENT_FACTORY, ASSISTANT_FACTORY, AgentLike, AssistantLike } from './onboarding-transport';
 import { TraceStore } from './trace-store';
+
+class FakeAssistant implements AssistantLike {
+  readonly sent: unknown[] = [];
+  constructor(
+    readonly threadId: string,
+    private readonly replies: (string | Error)[],
+  ) {}
+
+  addMessage(message: unknown): void {
+    this.sent.push(message);
+  }
+
+  async runAgent(): Promise<never> {
+    const reply = this.replies.shift() ?? '';
+    if (reply instanceof Error) {
+      throw reply;
+    }
+    return { result: undefined, newMessages: reply ? [{ id: 'a1', role: 'assistant', content: reply }] : [] } as never;
+  }
+}
 
 interface Turn {
   prompt?: OnboardingPrompt;
@@ -51,10 +71,19 @@ class FakeAgent implements AgentLike {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve));
 
-function setup(turns: Turn[], nextThreads: Turn[][] = []) {
+function setup(turns: Turn[], nextThreads: Turn[][] = [], assistantReplies: (string | Error)[] = []) {
   const created: FakeAgent[] = [];
+  const assistants: FakeAssistant[] = [];
   TestBed.configureTestingModule({
     providers: [
+      {
+        provide: ASSISTANT_FACTORY,
+        useValue: (threadId: string) => {
+          const fake = new FakeAssistant(threadId, assistantReplies);
+          assistants.push(fake);
+          return fake;
+        },
+      },
       {
         provide: AGENT_FACTORY,
         useValue: (threadId: string) => {
@@ -66,7 +95,7 @@ function setup(turns: Turn[], nextThreads: Turn[][] = []) {
     ],
   });
   const agent = TestBed.inject(OnboardingAgent);
-  return { agent, trace: TestBed.inject(TraceStore), created };
+  return { agent, trace: TestBed.inject(TraceStore), created, assistants };
 }
 
 const step1: Turn = { prompt: { step: 1, fields: ['nombre', 'apellidos'], errors: [] }, state: { step: 1, done: false } };
@@ -188,6 +217,44 @@ describe('OnboardingAgent', () => {
       'onboarding_closed:ACTIVE',
     ]);
     expect(agent.durationMs()).not.toBeNull();
+  });
+
+  it('tras la activación envía los mensajes libres al asistente en el mismo thread', async () => {
+    const { agent, assistants } = setup(
+      [confirm, { state: { step: 5, done: true, activated: true, wallet_id: 'wallet_1' } }],
+      [],
+      ['Tu límite es de 500 PEN.', new Error('network'), ''],
+    );
+    await flush();
+    await agent.send('activar');
+    expect(agent.phase()).toBe('ACTIVE');
+
+    await agent.send('¿Cuál es el límite de pagos?');
+    expect(assistants).toHaveLength(1);
+    expect(assistants[0].threadId).toBe(agent.sessionId());
+    expect(assistants[0].sent).toEqual([
+      { id: expect.any(String), role: 'user', content: '¿Cuál es el límite de pagos?' },
+    ]);
+    expect(agent.messages().at(-1)).toMatchObject({ role: 'agent', text: 'Tu límite es de 500 PEN.' });
+    expect(agent.phase()).toBe('ACTIVE');
+    expect(agent.busy()).toBe(false);
+
+    await agent.send('muéstrame mis datos');
+    expect(assistants).toHaveLength(1);
+    expect(agent.messages().at(-1)?.text).toContain('No pudimos conectar con el asistente');
+
+    await agent.send('hola');
+    expect(agent.messages().at(-1)?.text).toContain('No recibí una respuesta');
+  });
+
+  it('en ACTIVE «Ir a pagos» no consulta al asistente', async () => {
+    const { agent, assistants } = setup([confirm, { state: { step: 5, done: true, activated: true } }]);
+    await flush();
+    await agent.send('activar');
+
+    await agent.send('Ir a pagos');
+    expect(assistants).toHaveLength(0);
+    expect(agent.messages().at(-1)?.text).toContain('pagos de bajo monto');
   });
 
   it.each([
