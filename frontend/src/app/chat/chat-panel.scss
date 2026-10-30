@@ -1,0 +1,265 @@
+:host {
+  display: block;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: min(720px, calc(100vh - 112px));
+  min-height: 520px;
+  border: 1px solid #e1e8e5;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 24px rgb(20 50 40 / 6%);
+  overflow: hidden;
+}
+
+.chat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #eef2f0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: #087a57;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.8px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.3px;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 12px;
+}
+
+.link-button {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  color: #08704f;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.link-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 0;
+  padding: 14px 18px 0;
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #8a989f;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.step-index {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef2f0;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.steps li.done {
+  color: #08704f;
+}
+
+.steps li.done .step-index {
+  background: #cfeade;
+}
+
+.steps li.current {
+  color: #163f32;
+}
+
+.steps li.current .step-index {
+  background: #087a57;
+  color: #fff;
+}
+
+.step-caption {
+  margin: 8px 18px 0;
+  color: #5b6d75;
+  font-size: 12px;
+}
+
+.status {
+  display: inline-block;
+  margin-left: 6px;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.status-ok {
+  background: #cfeade;
+  color: #0b5b42;
+}
+
+.status-warn {
+  background: #fdf1dc;
+  color: #8a5a0b;
+}
+
+.status-error {
+  background: #fbe3e0;
+  color: #a02a1d;
+}
+
+.messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px 18px;
+  overflow-y: auto;
+  background: #f9fbfa;
+}
+
+.bubble {
+  max-width: 85%;
+  border: 1px solid #e3ebe7;
+  border-radius: 14px 14px 14px 4px;
+  padding: 10px 13px;
+  background: #fff;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.bubble-user {
+  align-self: flex-end;
+  border-color: #087a57;
+  border-radius: 14px 14px 4px 14px;
+  background: #087a57;
+  color: #fff;
+}
+
+.bubble-typing {
+  display: flex;
+  gap: 4px;
+  width: 58px;
+  padding: 13px;
+}
+
+.bubble-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9db0a8;
+  animation: blink 1s infinite ease-in-out;
+}
+
+.bubble-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.bubble-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 18px 0;
+}
+
+.chip {
+  border: 1px solid #cfe3da;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #f1f8f5;
+  color: #08704f;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  background: #e2f1ea;
+}
+
+.chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px 16px;
+}
+
+.composer input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 1px solid #d5e0db;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.composer input:focus-visible {
+  outline: 2px solid #087a57;
+  outline-offset: 1px;
+}
+
+.send {
+  border: 0;
+  border-radius: 10px;
+  padding: 0 18px;
+  background: #087a57;
+  color: #fff;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

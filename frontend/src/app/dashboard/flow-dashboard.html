@@ -1,0 +1,25 @@
+<section class="panel" aria-labelledby="trace-title">
+  <div class="panel-head">
+    <h2 id="trace-title">Trazabilidad <small>({{ timeline().length }})</small></h2>
+    <button class="link-button" type="button" (click)="store.clear()">Limpiar traza</button>
+  </div>
+  <ol class="trace">
+    @for (event of timeline(); track event.id) {
+      <li [class.error]="event.status === 'error'">
+        <div class="trace-top">
+          <span class="time">{{ offset(event.at) }}</span>
+          <span class="route">{{ nodes[event.from].label }} → {{ nodes[event.to].label }}</span>
+          <span class="kind kind-{{ event.kind }}">{{ kindLabel(event.kind) }}</span>
+          @if (event.durationMs !== undefined) { <span class="duration">{{ event.durationMs }} ms</span> }
+        </div>
+        <p class="trace-label">{{ event.label }}</p>
+        @if (event.payload !== undefined) {
+          <details>
+            <summary>Ver contenido</summary>
+            <pre>{{ json(event.payload) }}</pre>
+          </details>
+        }
+      </li>
+    }
+  </ol>
+</section>
