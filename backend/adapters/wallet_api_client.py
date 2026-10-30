@@ -1,4 +1,4 @@
-"""Adaptador HTTP del puerto WalletGateway contra la API W1 (external-api/openapi.yaml)."""
+"""Adaptador HTTP del puerto WalletGateway contra la API W1 (openspec/changes/archive/2026-10-30-onboarding-wallet-bajo-monto/external-api/openapi.yaml)."""
 
 import hashlib
 import hmac
@@ -53,5 +53,14 @@ class WalletApiClient:
             return WalletActivation(activated=False, reason=body.get("error", "HTTP_ERROR"))
 
         if body.get("status") == "ACTIVE":
-            return WalletActivation(activated=True, wallet_id=body["wallet_id"])
-        return WalletActivation(activated=False, reason=body.get("status", "NOT_ACTIVE"))
+            return WalletActivation(
+                activated=True, wallet_id=body["wallet_id"], kyc_id=body.get("id"), status="ACTIVE"
+            )
+        status = body.get("status")
+        return WalletActivation(
+            activated=False,
+            wallet_id=body.get("wallet_id"),
+            reason=status or "NOT_ACTIVE",
+            kyc_id=body.get("id"),
+            status=status,
+        )

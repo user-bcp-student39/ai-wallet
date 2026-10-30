@@ -41,6 +41,8 @@ def test_approved_verification_activates_wallet_and_sends_only_test_document():
     activation = client.activate_wallet(REQUEST)
 
     assert activation.activated and activation.wallet_id == "W-1"
+    assert activation.kyc_id == "kyc-1"
+    assert activation.status == "ACTIVE"
     payload = sent[0]
     assert payload["documentType"] == "TEST"
     assert payload["document"].startswith("TEST-")
@@ -62,6 +64,37 @@ def test_rejected_verification_does_not_activate():
     assert activation.reason == "REJECTED"
 
 
+@pytest.mark.parametrize("status", ["PENDING", "REJECTED"])
+def test_non_active_status_still_returns_kyc_wallet_and_status(status):
+    client, _ = _client(
+        lambda request: httpx.Response(
+            201, json={"id": "kyc-9", "wallet_id": "W-9", "scenario": "MANUAL_REVIEW", "status": status}
+        )
+    )
+
+    activation = client.activate_wallet(REQUEST)
+
+    assert not activation.activated
+    assert (activation.kyc_id, activation.wallet_id, activation.status) == ("kyc-9", "W-9", status)
+
+
+def test_error_without_verification_body_has_no_kyc_id():
+    client, _ = _client(lambda request: httpx.Response(503, json={"error": "KYC_UNAVAILABLE"}))
+
+    activation = client.activate_wallet(REQUEST)
+
+    assert activation.kyc_id is None and activation.status is None
+
+
+def test_empty_error_body_has_no_kyc_id():
+    client, _ = _client(lambda request: httpx.Response(500))
+
+    activation = client.activate_wallet(REQUEST)
+
+    assert not activation.activated
+    assert activation.kyc_id is None
+
+
 def test_kyc_unavailable_returns_error_code_as_reason():
     client, _ = _client(lambda request: httpx.Response(503, json={"error": "KYC_UNAVAILABLE"}))
 
@@ -81,6 +114,7 @@ def test_connection_failure_does_not_activate():
 
     assert not activation.activated
     assert activation.reason == "API_UNAVAILABLE"
+    assert activation.kyc_id is None
 
 
 def test_test_document_is_deterministic_and_hides_dni():

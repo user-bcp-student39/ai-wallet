@@ -3,6 +3,8 @@
     <h1>Activa tu wallet</h1>
     @if (activated()) {
       <p>Onboarding completado</p>
+    } @else if (failed()) {
+      <p>Activación no completada</p>
     } @else {
       <p>Paso {{ currentStep() }} de {{ steps.length }}</p>
     }
@@ -25,6 +27,10 @@
 
   @if (activated()) {
     <p class="result" role="status">Wallet activada. Ya puedes realizar pagos.</p>
+  } @else if (failed()) {
+    <p class="error" role="alert">
+      No pudimos completar la activación de tu wallet. Inténtalo de nuevo más tarde.
+    </p>
   } @else if (currentStep() === 5) {
     <button type="button" (click)="confirmActivation()" [disabled]="isRunning()">
       Activar wallet

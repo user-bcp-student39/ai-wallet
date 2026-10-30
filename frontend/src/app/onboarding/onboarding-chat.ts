@@ -62,6 +62,7 @@ interface OnboardingAgentState {
   readonly step?: number;
   readonly errors?: readonly OnboardingError[];
   readonly activated?: boolean;
+  readonly done?: boolean;
 }
 
 const AGENT_ID = 'onboarding';
@@ -110,6 +111,8 @@ export class OnboardingChat {
   );
   protected readonly currentStep = computed(() => this.prompt()?.step ?? this.state().step ?? 1);
   protected readonly activated = computed(() => this.state().activated === true);
+  // El grafo terminó (`done`) sin activar: KYC no aprobada, API no disponible o fallo de registro.
+  protected readonly failed = computed(() => this.state().done === true && !this.activated());
   protected readonly currentFields = computed(
     () => ONBOARDING_STEPS.find((s) => s.step === this.currentStep())?.fields ?? [],
   );

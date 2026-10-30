@@ -3,13 +3,15 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any, Callable, TypedDict
 
+from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.types import interrupt
 
-from application.onboarding_service import OnboardingService, WalletNotActivatedError
+from adapters.activation_tool import build_activation_tool
+from application.onboarding_service import OnboardingService
 from domain.onboarding import (
     DEFAULT_CURRENCY,
     DEFAULT_SESSION_TTL,
@@ -20,6 +22,7 @@ from domain.onboarding import (
     validate_step,
 )
 from ports.wallet_gateway import WalletGateway
+from ports.wallet_repository import WalletRepository
 
 BOOTSTRAP_NODE = "bootstrap"
 
@@ -125,7 +128,7 @@ def _data_step_node(
 
 
 def _activation_node(
-    gateway: WalletGateway, clock: Callable[[], datetime], ttl: timedelta
+    activate_wallet: BaseTool, clock: Callable[[], datetime], ttl: timedelta
 ) -> Callable[[OnboardingState], dict[str, Any]]:
     def node(state: OnboardingState) -> dict[str, Any]:
         answer = interrupt({"step": int(Step.ACTIVATION), "confirm": True, "errors": state["errors"]})
@@ -134,15 +137,11 @@ def _activation_node(
             return _restart(now)
         if not (isinstance(answer, dict) and answer.get("confirmar") is True):
             return {"errors": [{"field": None, "message": "Confirma la activación para continuar."}]}
-        session = OnboardingSession(step=Step.ACTIVATION, data=dict(state["data"]), last_progress_at=now)
-        try:
-            activation = OnboardingService(gateway).activate(session, now)
-        except WalletNotActivatedError as exc:
-            return {"activated": False, "wallet_id": None, "reason": exc.reason, "errors": [], "done": True}
+        result = activate_wallet.invoke({"data": dict(state["data"]), "confirmed_at": now.isoformat()})
         return {
-            "activated": activation.activated,
-            "wallet_id": activation.wallet_id,
-            "reason": None,
+            "activated": result["activated"],
+            "wallet_id": result["wallet_id"],
+            "reason": result["reason"],
             "errors": [],
             "done": True,
         }
@@ -152,6 +151,7 @@ def _activation_node(
 
 def build_onboarding_graph(
     gateway: WalletGateway,
+    repository: WalletRepository,
     checkpointer: BaseCheckpointSaver | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
     ttl: timedelta = DEFAULT_SESSION_TTL,
@@ -161,10 +161,11 @@ def build_onboarding_graph(
     ttl: inactividad máxima entre pasos; al superarla el onboarding vuelve al paso 1.
     """
     builder = StateGraph(OnboardingState)
+    activate_wallet = build_activation_tool(OnboardingService(gateway, repository, ttl))
     builder.add_node(BOOTSTRAP_NODE, _bootstrap_node(clock))
     for step in Step:
         if step is Step.ACTIVATION:
-            builder.add_node(NODE_BY_STEP[step], _activation_node(gateway, clock, ttl))
+            builder.add_node(NODE_BY_STEP[step], _activation_node(activate_wallet, clock, ttl))
         else:
             builder.add_node(NODE_BY_STEP[step], _data_step_node(step, clock, ttl))
 

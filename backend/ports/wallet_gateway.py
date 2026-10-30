@@ -21,6 +21,8 @@ class WalletActivation:
     activated: bool
     wallet_id: str | None = None
     reason: str | None = None
+    kyc_id: str | None = None
+    status: str | None = None
 
 
 @runtime_checkable

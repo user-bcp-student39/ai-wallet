@@ -24,8 +24,8 @@ def _events(response_text: str) -> list[dict]:
     return [json.loads(line[len("data: "):]) for line in response_text.splitlines() if line.startswith("data: ")]
 
 
-def test_agui_run_pauses_on_first_step_and_resumes_on_same_thread(fake_gateway):
-    client = TestClient(create_app(fake_gateway))
+def test_agui_run_pauses_on_first_step_and_resumes_on_same_thread(fake_gateway, fake_repository):
+    client = TestClient(create_app(fake_gateway, fake_repository))
 
     first = client.post("/agent", json=_run_body("hilo-test-1", "run-1"))
     assert first.status_code == 200
@@ -44,11 +44,33 @@ def test_agui_run_pauses_on_first_step_and_resumes_on_same_thread(fake_gateway):
     assert second_interrupts[0]["rawEvent"]["value"]["step"] == 2
 
 
-def test_agui_cors_allows_angular_dev_server(fake_gateway):
-    client = TestClient(create_app(fake_gateway))
+def test_agui_cors_allows_angular_dev_server(fake_gateway, fake_repository):
+    client = TestClient(create_app(fake_gateway, fake_repository))
 
     response = client.options(
         "/agent",
         headers={"Origin": "http://localhost:4200", "Access-Control-Request-Method": "POST"},
     )
     assert response.headers.get("access-control-allow-origin") == "http://localhost:4200"
+
+
+def test_agui_full_flow_saves_record_in_injected_repository(fake_gateway, fake_repository):
+    client = TestClient(create_app(fake_gateway, fake_repository))
+    answers = [
+        {"nombre": "Ana", "apellidos": "Pérez"},
+        {"telefono": "999999999", "email": "ana@example.com"},
+        {"dni": "12345678"},
+        {"monto_maximo": "300"},
+        {"confirmar": True},
+    ]
+
+    response = client.post("/agent", json=_run_body("hilo-registro", "run-0"))
+    for index, answer in enumerate(answers, start=1):
+        interrupts = [e for e in _events(response.text) if e.get("name") == "on_interrupt"]
+        resume = [{"interruptId": interrupts[0]["rawEvent"]["id"], "status": "resolved", "payload": answer}]
+        response = client.post("/agent", json=_run_body("hilo-registro", f"run-{index}", resume=resume))
+
+    assert response.status_code == 200
+    assert [(record.kyc_id, record.state, record.document_number) for record in fake_repository.records] == [
+        ("KYC-TEST-1", "ACTIVE", "12345678")
+    ]
