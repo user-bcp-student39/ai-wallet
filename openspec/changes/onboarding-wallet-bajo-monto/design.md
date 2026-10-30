@@ -40,12 +40,44 @@ Versiones estables más recientes verificadas en los registros oficiales (PyPI, 
 - **Backend hexagonal (Python):** `domain/` contiene las reglas de validación y la máquina de estados; `application/` contiene los casos de uso; `ports/` define `WalletGateway`; `adapters/` tiene un adaptador de entrada (endpoint que expone el agente a CopilotKit) y uno de salida (cliente HTTP a la API mock). El dominio no importa FastAPI, LangGraph ni httpx.
 - **LangGraph en el backend:** el workflow de onboarding es un grafo donde cada paso es un nodo y un paso con validación fallida vuelve al mismo nodo mediante una arista condicional. Alternativa descartada: LangGraph en el navegador, porque el runtime de agentes no corre de forma fiable allí.
 - **Frontend Angular con CopilotKit:** componentes standalone, signals, estrategia `OnPush`, formularios reactivos con validadores y rutas con carga diferida. La interfaz consume el agente mediante CopilotKit y no llama directamente a la API externa.
-- **Adaptador de la tool:** la URL base se configura por variable de entorno. Si el contrato real difiere del mock, solo cambia el adaptador; el dominio y el agente no se tocan.
+- **Adaptador de la tool:** la URL base se configura por variable de entorno y el contrato de la API se describe en [external-api/openapi.yaml](./external-api/openapi.yaml). Si el contrato real difiere del mock, solo cambia el adaptador; el dominio y el agente no se tocan.
 - **Validación en el servidor además de la interfaz:** la interfaz muestra el mensaje de corrección al instante, pero el servidor vuelve a validar cada paso antes de persistirlo. Así una petición manipulada no puede saltarse una regla.
 - **Expiración de sesión en el servidor:** el avance se guarda con una marca de tiempo y un tiempo de vida leído de configuración (`5 min` por defecto). Alternativa descartada: expirar solo en el cliente, porque puede manipularse.
 - **Estado de sesión con `MemorySaver` de LangGraph:** el grafo compila con `MemorySaver` como checkpointer. Cada sesión usa un `thread_id` (UUID v4) generado por el frontend y enviado en `config["configurable"]["thread_id"]` en cada invocación. El estado contiene los datos del onboarding, el paso actual y la marca de tiempo del último avance; el TTL se comprueba al entrar en cada nodo. El frontend guarda el `thread_id` en `sessionStorage` para recuperarlo tras recargar la pantalla. Alternativa descartada: `localStorage`, porque la sesión debe terminar con la pestaña.
 - **Configuración del tiempo de sesión:** valor en configuración del proyecto, no hardcodeado, para que cambie sin tocar código.
 - **Monto máximo como límite configurable del usuario:** el usuario elige un valor en (0, 500] PEN. El tope de 500 es una constante de negocio, no un valor configurable por usuario.
+
+## Arquitectura frontend-backend
+
+```mermaid
+flowchart LR
+  subgraph FE["frontend/ (Angular 22 + CopilotKit)"]
+    UI["Chat conversacional: paso actual y pasos restantes"]
+    SS[("sessionStorage: thread_id")]
+  end
+  subgraph BE["backend/ (Python 3.13 + FastAPI)"]
+    EP["Adaptador de entrada: endpoint del agente para CopilotKit"]
+    subgraph CORE["Núcleo hexagonal"]
+      WF["Workflow LangGraph + MemorySaver"]
+      DOM["Dominio: máquina de estados y validaciones"]
+      PORT(["Puerto WalletGateway"])
+    end
+    AD["Adaptador de salida: cliente httpx"]
+  end
+  EXT[("API wallet (mock hoy, real después)")]
+
+  UI -- "mensajes + thread_id" --> EP
+  SS -. "recupera thread_id tras recarga" .- UI
+  EP --> WF
+  WF --> DOM
+  WF --> PORT
+  PORT --> AD
+  AD -- "HTTPS" --> EXT
+```
+
+- El frontend nunca llama a la API externa; todo pasa por el endpoint del backend.
+- El `thread_id` identifica la sesión de onboarding en `MemorySaver`; el TTL se comprueba en el servidor al entrar en cada nodo.
+- El dominio no depende de FastAPI, LangGraph ni httpx. El único punto de contacto con la API externa es `WalletGateway`.
 
 ## Risks / Trade-offs
 
@@ -63,5 +95,5 @@ No aplica: el sistema no tiene datos previos. Rollback: desactivar la ruta de on
 ## Open Questions
 
 - Formato exacto aceptado para teléfono (prefijo, longitud) y para email (dominios permitidos o solo formato estándar). Pueden definirse en la fase de tareas sin cambiar los requisitos actuales.
-- Endpoints y contrato reales de la tool de onboarding en la API externa. Mientras no existan, el adaptador se implementa contra el puerto y con respuestas simuladas.
+- Endpoints y contrato reales de la tool de onboarding en la API externa. El contrato se documentará en [external-api/openapi.yaml](./external-api/openapi.yaml), que hoy está vacío. Mientras no tenga contenido, el adaptador se implementa contra el puerto y con respuestas simuladas.
 - Resuelta: el avance de sesión vive en el backend, en el estado de LangGraph con `MemorySaver`, y el frontend solo guarda el `thread_id` (ver Decisions).
